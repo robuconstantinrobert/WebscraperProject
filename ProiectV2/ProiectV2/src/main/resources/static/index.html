@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Company Scraping</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        p {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+        ul {
+            text-align: left;
+            list-style: none;
+        }
+        li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Company Scraping</h1>
+    <button id="scrapeButton">Start Scraping</button>
+    <button id="searchButton">Search Company</button>
+    <p id="status">Status: Not Started</p>
+    <p id="scrapedCount">Websites Scraped: 0</p>
+    <p id="totalWebsites">Total Websites: 0</p>
+    <p id="fillRate">Data Fill Rate: 0%</p>
+    <p id="elapsedTime">Elapsed Time: 0 minutes 0 seconds</p>
+    <ul id="scrapedWebsites"></ul>
+</div>
+
+<script>
+    var startTime;
+    var endTime;
+
+    function fetchTotalWebsites() {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/apis/totalWebsites', true);
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var totalWebsites = parseInt(xhr.responseText);
+                document.getElementById('totalWebsites').innerText = 'Total Websites: ' + totalWebsites;
+            } else {
+                document.getElementById('totalWebsites').innerText = 'Total Websites: Unknown';
+            }
+        };
+
+        xhr.send();
+    }
+
+    document.getElementById('scrapeButton').addEventListener('click', function() {
+        document.getElementById('status').innerText = 'Status: Scraping in progress...';
+
+        startTime = performance.now();
+
+        fetchTotalWebsites();
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/apis/scrape', true);
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                var response = JSON.parse(xhr.responseText);
+                document.getElementById('status').innerText = 'Status: Scraping completed';
+                var websitesScraped = response.length;
+                document.getElementById('scrapedCount').innerText = 'Websites Scraped: ' + websitesScraped;
+
+                displayScrapedData(response);
+                displayFillRate(response);
+
+                endTime = performance.now();
+
+                var elapsedMilliseconds = endTime - startTime;
+                var minutes = Math.floor(elapsedMilliseconds / 60000);
+                var seconds = ((elapsedMilliseconds % 60000) / 1000).toFixed(2);
+                document.getElementById('elapsedTime').innerText = 'Elapsed Time: ' + minutes + ' minutes ' + seconds + ' seconds';
+            } else {
+                document.getElementById('status').innerText = 'Status: Scraping failed';
+            }
+        };
+
+        xhr.send();
+    });
+
+    function displayScrapedData(companies) {
+        var ul = document.getElementById('scrapedWebsites');
+        ul.innerHTML = '';
+
+        companies.forEach(function(company) {
+            var li = document.createElement('li');
+
+            var numColumns = 5;
+            var numNonNullColumns = 0;
+            if (company.name !== 'NA') numNonNullColumns++;
+            if (company.website !== 'NA') numNonNullColumns++;
+            if (company.phoneNumber !== 'NA') numNonNullColumns++;
+            if (company.address !== 'NA') numNonNullColumns++;
+            if (company.socialMediaWebsite !== 'NA') numNonNullColumns++;
+
+            var fillRate = ((numNonNullColumns / numColumns) * 100).toFixed(2) + '%';
+
+            var content = 'Name: ' + company.name + ' | Website: ' + company.website + ' | Fill Rate: ' + fillRate;
+            li.innerText = content;
+            ul.appendChild(li);
+        });
+    }
+
+    function displayFillRate(companies) {
+        var numColumns = 5;
+        var totalNonNullColumns = 0;
+
+        companies.forEach(function(company) {
+            if (company.name !== 'NA') totalNonNullColumns++;
+            if (company.website !== 'NA') totalNonNullColumns++;
+            if (company.phoneNumber !== 'NA') totalNonNullColumns++;
+            if (company.address !== 'NA') totalNonNullColumns++;
+            if (company.socialMediaWebsite !== 'NA') totalNonNullColumns++;
+        });
+
+        var overallFillRate = ((totalNonNullColumns / (numColumns * companies.length)) * 100).toFixed(2) + '%';
+        document.getElementById('fillRate').innerText = 'Data Fill Rate: ' + overallFillRate;
+    }
+
+    document.getElementById('searchButton').addEventListener('click', function() {
+        window.location.href = '/searchCompany.html';
+    });
+</script>
+</body>
+</html>
